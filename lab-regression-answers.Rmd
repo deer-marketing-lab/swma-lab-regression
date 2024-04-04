@@ -2,7 +2,10 @@
 title: "My answers"
 author: "My name"
 date: '`r format(Sys.time(), "%d %B, %Y")`'
-output: html_document
+output: 
+  #unilur::answer_rmd: default
+  #unilur::tutorial_pdf: default
+  unilur::tutorial_html_solution: default
 ---
 
 ## Motivation
@@ -79,8 +82,8 @@ library(modelsummary)
 
 1. Load the data. The data is stored as a Stata dataset, so it can be loaded with the `read_dta()` function from the `haven` package.
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+sasp <- read_dta('data/sasp_panel.dta')
 ```
 
 
@@ -91,8 +94,10 @@ library(modelsummary)
 ]
 Write a short command to drop any rows which have missing values from the data.
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+sasp <- 
+    sasp %>%
+    drop_na()
 ```
 
 
@@ -103,48 +108,114 @@ In the `sasp` data, there is a variable `lnw` which is the log of the hourly wag
 Your plot should therefore have two histograms, potentially overlaying each other.
 Does there appear to be a difference in price between safe and unsafe sex?
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+sasp %>%
+    ggplot(aes(x = lnw, fill = factor(unsafe))) +
+    # i plot proportions, you don't need to
+    geom_histogram(aes(y = stat(count / sum(count))), alpha=0.6) +
+    scale_fill_manual(values=c("#69b3a2", "#404080")) +
+    ylab("Fraction of Bookings") +
+    xlab("Log Hourly Wage") +
+    theme_bw()
 ```
 
 4. Let's formalize this idea with a regression.
 Run a single variable regression of log hourly wage, `lnw` on the variable `unsafe`.
 Report the results.
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+simple_reg <- lm(lnw ~ unsafe, data = sasp)
+
+tidy(simple_reg, conf.int = TRUE)
 ```
 
 
 5. Interpret the coefficient on `unsafe`.
 Is it statistically significant?
 
-Write your answer here
+
+```{block, solution = TRUE}
+Interpretation (1): On average, unsafe sex is associated with a decrease in log hourly wage by 0.035
+
+Interpretation (2): On average, unsafe sex is associated with a decrease in the the hourly wage by approximately 3.5 percent.
+
+Interpretation 2 utilizes the log-level interpretation of the regression.
+Technically, the size of the effect is $(\exp{\hat{\beta}_1} - 1)*100$ percent, for small values of $\beta_1$, $\exp{\hat{\beta}_1} - 1 \approx \hat{\beta}$.
+
+Statistical Significance: the p-value is 0.197 $>$ 0.05, so the effect is not statistically significant at the 5 percent level of significance. 
+```
 
 6. A single variable regression most likely suffers from omitted variable bias. 
 Explain what omitted variable bias is, and why it might impact your regression estimates.
 
-Write your answer here
+```{block, solution = TRUE}
+Omitted Variable Bias: the effect of leaving out one or more relevant variables on the regression coefficients in the "misspecified" regression.
+
+For omitted variable bias to occur we need:
+
+1. The included $X$ variable(s) to be correlated with the omitted variable
+2. The omitted variable to be a relevant determinant of $y$
+
+(1) and (2) leave to a violation of the exogeneity assumption $E(u_i | x_i) = 0$. 
+When we don't have exogeneity, 
+
+$$
+E[\hat{\beta}] = \beta + \text{bias}
+$$
+
+which means that our estimated coefficient cannot accurately estimate the true population parameter, and thus can't be interpreted causally.
+``` 
 
 
 7. Add the log of the length of the session, `llength`, as a second variable to your regression.
 Report the results.
 Did the coefficient on `unsafe` change?
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+twovar_reg <- lm(lnw ~ unsafe + llength, data = sasp)
+
+tidy(twovar_reg, conf.int = TRUE)
 ```
 
 
 8. Explain why ignoring `llength` in your regression led to the coefficient on `unsafe` to be different in sign in the single variable regression than in the two variable regression.
 
-Write your answer here
+```{block, solution = TRUE}
+The formula for Omitted Variable Bias (assuming omitted variable, $x_2$ has coefficient $\beta_2$)
+
+$$
+E[\hat{\beta_1}] = \beta_1 + \beta_2 \frac{\text{Cov}(x_1, x_2)}{\text{Var}(x_2)}
+$$
+
+One would reason that:
+
+* $\beta_2 < 0$ ... longer sessions lead to quantity discounts
+* $\text{Cov}(x_1, x_2) >0$ ... longer sessions more likely to feature unsafe sex
+
+$\implies$ bias is negative, so that 
+
+$$
+\begin{aligned}
+E[\hat{\beta_1}] &= \beta_1 + \text{something negative} \\
+                 &< \beta_1
+\end{aligned}
+$$
+
+**Remark**: In case it was not clear from above, then:
+
+* $\text{Cov}(x_1, x_2)$ is the covariance between $x_1$ and $x_2$
+* $\text{Var}(x_2)$ is the standard deviation of $x_2$
+```
 
 9.  Add a third variable to the regression, whether the client is a regular or not (`reg` in the data).
 Report your results and comment on any change in the regression estimate of `unsafe`.
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+threevar_reg <- lm(lnw ~ unsafe + reg + llength, data = sasp)
+
+tidy(threevar_reg, conf.int = TRUE)
+
+# I'll leave the comments out...
 ```
 
 
@@ -154,18 +225,49 @@ Marketers are generally interested in whether effects they find are heterogeneou
 Do this by modifying your regression command from (9).
 Report your results and discuss your findings.
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+het_reg <- lm(lnw ~ unsafe:reg + reg + llength, data = sasp)
+
+tidy(het_reg, conf.int = TRUE)
+
+# I'll leave the comments out...
 ```
 
 
 11. Interpret the results you found in (10).
 
-Write your answer here
+```{block, solution = TRUE}
+First, notice that neither of the terms `unsafe` or `unsafe:reg` are statistically significant - so we don't find overwhelming evidence for differences.
+
+If we want to take the point estimates seriously (ignoring the std errors - purely for the sake of interpretation practice), we'd see that there seems to be evidence of price discrimination.
+Providers charge a higher price for unsafe sex with clients who are are regulars than those who aren't.
+A potential reason could be that regulars are less likely to switch to a different provider, so they're taken advantage of and charged a higher premium. 
+I wouldn't want to push this argument too hard.
+```
 
 12. Are the effects you documented *causal*, *descriptive* or *predictive*?  Explain your answer.
 
-Write your answer here
+```{block, solution = TRUE}
+Descriptive at best.
+
+Why not causal:
+    * Omitted variable bias, lack of randomization
+
+There's actually a very important omitted variable in the regressions we have run, which is a "fixed effect" for the provider. This boils down to dummy variables for each provider.
+
+Why does this matter:
+    * think about omitted variable bias
+    * providers have different willingness to engage in unsafe sex 
+    * These providers also likely price differently
+    * This leads to a negative bias in our estimate (the formula for OVB with FE is messier, so omitted)
+```
+
+```{r, solution = TRUE}
+fe_reg <- lm(lnw ~ unsafe + reg + llength + as.factor(id), data = sasp)
+
+tidy(fe_reg, conf.int = TRUE)
+
+```
 
 Now that you have run a series of regressions, you want to present the results in a way that you could use in a report or a presentation.
 
@@ -176,13 +278,31 @@ We recommend reading the [vignette](https://modelsummary.com/) to get started wi
 You can choose any of the estimates you like to produce the table, but we encourage you to think about how each column adds something to a story you could tell to explain your findings.
 The final result should look similar to a regression table you see in academic publications.
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+# a simple table - minimum customization
+mods <- list(
+  simple_reg,
+  twovar_reg,
+  threevar_reg,
+  het_reg
+)
+
+msummary(mods,
+         coef_omit = "Interc",
+         gof_omit = "AIC|BIC|Log|Pseudo|F"
+         )
 ```
 
 14. Take your regression estimates and produce a coefficient plot to summarize them in one place. 
 You can choose any of the estimates you like to produce the plot, but we encourage you to think about the plot you produce can be used as part of a story you could tell to explain your findings.
 
-```{r}
-# Write your answer here
+```{r, solution = TRUE}
+modelplot(mods,
+          coef_omit = "Interc|^reg|ll") +
+  geom_vline(xintercept = 0, 
+             alpha = 0.5, 
+             linetype = "dashed") +
+  xlab("Coefficient Estimate + 95% CI") +
+  coord_flip() +
+  theme_bw()
 ```
