@@ -253,7 +253,7 @@ Descriptive at best.
 Why not causal:
     * Omitted variable bias, lack of randomization
 
-There's actually a very important omitted variable in the regressions we have run, which is a "fixed effect" for the provider. This boils down to dummy variables for each provider.
+There's actually a very important omitted variable in the regressions we have run, which is a "fixed effect" for the provider. This boils down to dummy variables for each provider. We'll discuss these in detail in the coming weeks.
 
 Why does this matter:
     * think about omitted variable bias
