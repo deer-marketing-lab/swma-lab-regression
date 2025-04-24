@@ -5,6 +5,7 @@ date: '`r format(Sys.time(), "%d %B, %Y")`'
 output: 
   #unilur::answer_rmd: default
   #unilur::tutorial_pdf: default
+  #unilur::tutorial_pdf_solution: default
   unilur::tutorial_html_solution: default
 ---
 
@@ -184,7 +185,7 @@ tidy(twovar_reg, conf.int = TRUE)
 The formula for Omitted Variable Bias (assuming omitted variable, $x_2$ has coefficient $\beta_2$)
 
 $$
-E[\hat{\beta_1}] = \beta_1 + \beta_2 \frac{\text{Cov}(x_1, x_2)}{\text{Var}(x_2)}
+E[\hat{\beta_1}] = \beta_1 + \beta_2 \frac{\text{Cov}(x_1, x_2)}{\text{Var}(x_1)}
 $$
 
 One would reason that:
@@ -226,7 +227,7 @@ Do this by modifying your regression command from (9).
 Report your results and discuss your findings.
 
 ```{r, solution = TRUE}
-het_reg <- lm(lnw ~ unsafe:reg + reg + llength, data = sasp)
+het_reg <- lm(lnw ~ unsafe + unsafe:reg + reg + llength, data = sasp)
 
 tidy(het_reg, conf.int = TRUE)
 
@@ -240,9 +241,10 @@ tidy(het_reg, conf.int = TRUE)
 First, notice that neither of the terms `unsafe` or `unsafe:reg` are statistically significant - so we don't find overwhelming evidence for differences.
 
 If we want to take the point estimates seriously (ignoring the std errors - purely for the sake of interpretation practice), we'd see that there seems to be evidence of price discrimination.
-Providers charge a higher price for unsafe sex with clients who are are regulars than those who aren't.
-A potential reason could be that regulars are less likely to switch to a different provider, so they're taken advantage of and charged a higher premium. 
+Providers do not charge a price premium for unsafe sex with clients who are are regulars.
+A potential reason could be that regulars are perceived to be less risky in terms of carrying STIs. 
 I wouldn't want to push this argument too hard.
+
 ```
 
 12. Are the effects you documented *causal*, *descriptive* or *predictive*?  Explain your answer.
@@ -263,10 +265,16 @@ Why does this matter:
 ```
 
 ```{r, solution = TRUE}
-fe_reg <- lm(lnw ~ unsafe + reg + llength + as.factor(id), data = sasp)
+fe_reg <- lm(lnw ~ unsafe*reg + llength + as.factor(id), data = sasp)
 
 tidy(fe_reg, conf.int = TRUE)
 
+```
+```{block, solution = TRUE}
+If we want to take the point estimates seriously (ignoring the std errors - purely for the sake of interpretation practice), we'd see that there seems to be evidence of price discrimination --but in the other direction.
+Providers charge a higher price for unsafe sex with clients who are are regulars than those who aren't.
+A potential reason could be that regulars are less likely to switch to a different provider, so they're taken advantage of and charged a higher premium. 
+I wouldn't want to push this argument too hard.
 ```
 
 Now that you have run a series of regressions, you want to present the results in a way that you could use in a report or a presentation.
